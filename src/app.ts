@@ -2,6 +2,7 @@ import express from 'express';
 import { cardRouter } from './routes/Card';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import { boardRouter } from './routes/Board';
 
 dotenv.config({ path: './config.env' });
 
@@ -20,6 +21,7 @@ const createServer = async() => {
   }
 
   app.use(express.json(), cardRouter);
+  app.use(express.json(), boardRouter);
 
   return app;
 };

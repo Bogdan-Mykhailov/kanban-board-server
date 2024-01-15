@@ -1,11 +1,10 @@
-import { Document } from 'mongoose';
-import { CardDocument } from './CardDocumentType';
+import { Document, Types } from 'mongoose';
 
 export interface BoardDocument extends Document {
-  name: String,
+  name: string;
   columns: {
-    ToDo: CardDocument[];
-    InProgress: CardDocument[];
-    Done: CardDocument[];
+    ToDo: Types.ObjectId[];
+    InProgress: Types.ObjectId[];
+    Done: Types.ObjectId[];
   };
 }

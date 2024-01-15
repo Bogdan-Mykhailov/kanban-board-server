@@ -4,9 +4,16 @@ import { CardDocument, CardStatus } from '../types/CardDocumentType';
 const cardSchema = new mongoose.Schema<CardDocument>({
   title: String,
   description: String,
-  status: { type: String,
+  status: {
+    type: String,
     enum: Object.values(CardStatus),
-    default: CardStatus.TODO },
+    default: CardStatus.TODO,
+  },
+  boardId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Board',
+    required: true,
+  },
 });
 
 const Card = mongoose.model('Card', cardSchema);
