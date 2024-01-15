@@ -1,7 +1,6 @@
 import { Document } from 'mongoose';
 
 export enum CardStatus {
-  // eslint-disable-next-line no-unused-vars
   TODO = 'todo',
   // IN_PROGRESS = 'inProgress',
   // DONE = 'done',
