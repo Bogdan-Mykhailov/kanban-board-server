@@ -6,8 +6,6 @@ export const Path = {
   updateBoard: '/board/:id/update',
   deleteBoard: '/board/:id/delete',
   createCard: '/board/:boardId/card',
-  getCardsByStatus: '/board/:boardId/cards',
-  getCardById: '/board/:boardId/card/:id',
   updateCard: '/board/:boardId/card/update/:id',
   deleteCard: '/board/:boardId/card/delete/:id',
 };
