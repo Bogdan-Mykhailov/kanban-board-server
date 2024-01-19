@@ -4,15 +4,15 @@ import { BoardDocument } from '../types/BoardDocumentType';
 const boardSchema = new Schema<BoardDocument>({
   name: String,
   columns: {
-    ToDo: [{
+    todo: [{
       type: Schema.Types.ObjectId,
       ref: 'Card',
     }],
-    InProgress: [{
+    inProgress: [{
       type: Schema.Types.ObjectId,
       ref: 'Card',
     }],
-    Done: [{
+    done: [{
       type: Schema.Types.ObjectId,
       ref: 'Card',
     }],

@@ -36,6 +36,7 @@ export const getBoardById = async(req: Request, res: Response) => {
 
       return;
     }
+
     res.json(foundBoard);
   } catch (error) {
     handleError(res, error, 'Error getting board by ID');
@@ -50,33 +51,62 @@ export const getCardsByBoard = async(req: Request, res: Response) => {
       { $match: { _id: new mongoose.Types.ObjectId(boardId) } },
       {
         $project: {
-          ToDo: '$columns.ToDo',
-          InProgress: '$columns.InProgress',
-          Done: '$columns.Done',
+          todo: '$columns.todo',
+          inProgress: '$columns.inProgress',
+          done: '$columns.done',
         },
       },
       {
         $lookup: {
           from: 'cards',
-          localField: 'ToDo',
+          localField: 'todo',
           foreignField: '_id',
-          as: 'ToDo',
+          as: 'todo',
         },
       },
       {
         $lookup: {
           from: 'cards',
-          localField: 'InProgress',
+          localField: 'inProgress',
           foreignField: '_id',
-          as: 'InProgress',
+          as: 'inProgress',
         },
       },
       {
         $lookup: {
           from: 'cards',
-          localField: 'Done',
+          localField: 'done',
           foreignField: '_id',
-          as: 'Done',
+          as: 'done',
+        },
+      },
+      {
+        $unwind: {
+          path: '$todo',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$inProgress',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$done',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $sort: { 'todo.order': 1, 'inProgress.order': 1, 'done.order': 1 },
+      },
+      {
+        $group: {
+          _id: '$_id',
+          todo: { $push: '$todo' },
+          inProgress: { $push: '$inProgress' },
+          done: { $push: '$done' },
         },
       },
     ]);
@@ -118,9 +148,9 @@ export const deleteBoard = async(req: Request, res: Response) => {
     }
 
     const cardIdsToDelete = [
-      ...board.columns.ToDo,
-      ...board.columns.InProgress,
-      ...board.columns.Done,
+      ...board.columns.todo,
+      ...board.columns.inProgress,
+      ...board.columns.done,
     ];
 
     await Promise.all([

@@ -6,7 +6,7 @@ import Board from '../models/Board';
 
 export const createCard = async(req: Request, res: Response) => {
   try {
-    const { title, description, status, boardId } = req.body;
+    const { title, description, status, boardId, order } = req.body;
 
     if (!Object.values(CardStatus).includes(status as CardStatus)) {
       return res.status(400).json({ error: 'Invalid card status' });
@@ -16,19 +16,37 @@ export const createCard = async(req: Request, res: Response) => {
       return res.status(400).json({ error: 'boardId is required' });
     }
 
-    const newCard = new Card({
-      title, description, status, boardId,
-    });
-
-    await newCard.save();
-
     const board = await Board.findById(boardId);
 
     if (!board) {
       return res.status(404).json({ error: 'Board not found' });
     }
 
-    board.columns.ToDo.push(newCard._id);
+    if (!Array.isArray(board.columns[status])) {
+      board.columns[status] = [];
+    }
+
+    for (const cardId of board.columns[status]) {
+      await Card.findByIdAndUpdate(cardId, { $inc: { order: 1 } });
+    }
+
+    const newCard = new Card({
+      title,
+      description,
+      status,
+      boardId,
+      order: order !== undefined ? order : 0,
+    });
+
+    await newCard.save();
+
+    if (order !== undefined && order >= 0
+      && order <= board.columns[status].length) {
+      board.columns[status].splice(order, 0, newCard._id);
+    } else {
+      board.columns[status].push(newCard._id);
+    }
+
     await board.save();
 
     res.status(201).json(newCard);
@@ -40,7 +58,7 @@ export const createCard = async(req: Request, res: Response) => {
 export const updateCard = async(req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, description, status, boardId } = req.body;
+    const { title, description, status, boardId, order } = req.body;
 
     if (status && !Object.values(CardStatus).includes(status as CardStatus)) {
       return res.status(400).json({ error: 'Invalid card status' });
@@ -48,7 +66,9 @@ export const updateCard = async(req: Request, res: Response) => {
 
     const updatedCard = await Card.findByIdAndUpdate(
       id,
-      { title, description, status },
+      {
+        title, description, status, order,
+      },
       { new: true },
     );
 
@@ -76,17 +96,30 @@ export const updateCard = async(req: Request, res: Response) => {
       }
     }
 
-    // Оновлюємо статус в залежності від значення у CardStatus
-    const statusInColumns = status === CardStatus.IN_PROGRESS ? 'InProgress'
-      : status === CardStatus.DONE ? 'Done' : 'ToDo';
+    const statusInColumns = status === CardStatus.IN_PROGRESS
+      ? 'inProgress' : status === CardStatus.DONE
+        ? 'done' : 'todo';
 
     if (Array.isArray(board.columns[statusInColumns])) {
-      board.columns[statusInColumns].push(updatedCard._id);
+      if (
+        order !== undefined
+        && order >= 0
+        && order <= board.columns[statusInColumns].length
+      ) {
+        board.columns[statusInColumns].splice(order, 0, updatedCard._id);
+      } else {
+        board.columns[statusInColumns].push(updatedCard._id);
+      }
+
+      for (let i = 0; i < board.columns[statusInColumns].length; i++) {
+        const cardId = board.columns[statusInColumns][i];
+
+        await Card.findByIdAndUpdate(cardId, { order: i });
+      }
     } else {
       board.columns[statusInColumns] = [updatedCard._id];
     }
 
-    // Здійснити оновлення в базі даних
     await Promise.all([board.save(), updatedCard.save()]);
 
     res.json(updatedCard);
@@ -104,25 +137,29 @@ export const deleteCard = async(req: Request, res: Response) => {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    const board = await Board.findOne({ 'columns.ToDo': id })
-      || await Board.findOne({ 'columns.InProgress': id })
-      || await Board.findOne({ 'columns.Done': id });
+    const board = await Board.findOne({ 'columns.todo': id })
+      || await Board.findOne({ 'columns.inProgress': id })
+      || await Board.findOne({ 'columns.done': id });
 
     if (!board) {
       return res.status(404).json({ error: 'Board not found' });
     }
 
-    for (const columnName in board.columns) {
-      const column = board.columns[columnName];
+    const statusInColumns = deletedCard
+      .status === CardStatus.IN_PROGRESS ? 'inProgress' : deletedCard
+        .status === CardStatus.DONE ? 'done' : 'todo';
 
-      if (Array.isArray(column)) {
-        const cardIndex = column.findIndex((cardId: any) => cardId.equals(id));
+    const column = board.columns[statusInColumns];
+    const cardIndex = column.findIndex((cardId: any) => cardId.equals(id));
 
-        if (cardIndex !== -1) {
-          column.splice(cardIndex, 1);
-          break;
-        }
-      }
+    if (cardIndex !== -1) {
+      column.splice(cardIndex, 1);
+    }
+
+    for (let i = 0; i < column.length; i++) {
+      const cardId = column[i];
+
+      await Card.findByIdAndUpdate(cardId, { order: i });
     }
 
     await board.save();

@@ -14,6 +14,10 @@ const cardSchema = new mongoose.Schema<CardDocument>({
     ref: 'Board',
     required: true,
   },
+  order: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const Card = mongoose.model('Card', cardSchema);

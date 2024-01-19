@@ -9,6 +9,7 @@ export enum CardStatus {
 export interface CardDocument extends Document {
   title: string;
   description: string;
-  status: CardStatus,
-  boardId: mongoose.Types.ObjectId,
+  status: CardStatus;
+  boardId: mongoose.Types.ObjectId;
+  order: number;
 }
