@@ -3,6 +3,7 @@ import Board from '../models/Board';
 import { handleError } from '../utils/error';
 import Card from '../models/Card';
 import mongoose from 'mongoose';
+import { BoardDocument } from '../types/BoardDocumentType';
 
 export const createBoard = async(req: Request, res: Response) => {
   try {
@@ -29,87 +30,21 @@ export const getAllBoards = async(req: Request, res: Response) => {
 export const getBoardById = async(req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
-    const foundBoard = await Board.findById(boardId);
 
-    if (!foundBoard) {
-      res.sendStatus(404);
+    const board: BoardDocument | null = await Board.findById(boardId);
 
-      return;
+    if (!board) {
+      return res.status(404).json({ error: 'Board not found' });
     }
 
-    res.json(foundBoard);
-  } catch (error) {
-    handleError(res, error, 'Error getting board by ID');
-  }
-};
-
-export const getCardsByBoard = async(req: Request, res: Response) => {
-  try {
-    const { boardId } = req.params;
-
-    const cards = await Board.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(boardId) } },
-      {
-        $project: {
-          todo: '$columns.todo',
-          inProgress: '$columns.inProgress',
-          done: '$columns.done',
-        },
-      },
-      {
-        $lookup: {
-          from: 'cards',
-          localField: 'todo',
-          foreignField: '_id',
-          as: 'todo',
-        },
-      },
-      {
-        $lookup: {
-          from: 'cards',
-          localField: 'inProgress',
-          foreignField: '_id',
-          as: 'inProgress',
-        },
-      },
-      {
-        $lookup: {
-          from: 'cards',
-          localField: 'done',
-          foreignField: '_id',
-          as: 'done',
-        },
-      },
-      {
-        $unwind: {
-          path: '$todo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $unwind: {
-          path: '$inProgress',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $unwind: {
-          path: '$done',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $sort: { 'todo.order': 1, 'inProgress.order': 1, 'done.order': 1 },
-      },
-      {
-        $group: {
-          _id: '$_id',
-          todo: { $push: '$todo' },
-          inProgress: { $push: '$inProgress' },
-          done: { $push: '$done' },
-        },
-      },
-    ]);
+    const cards = {
+      _id: boardId,
+      name: board.name,
+      todo: await Card.find({ _id: { $in: board.todo } }).sort('order'),
+      inProgress: await Card
+        .find({ _id: { $in: board.inProgress } }).sort('order'),
+      done: await Card.find({ _id: { $in: board.done } }).sort('order'),
+    };
 
     res.json(cards);
   } catch (error) {
@@ -148,9 +83,9 @@ export const deleteBoard = async(req: Request, res: Response) => {
     }
 
     const cardIdsToDelete = [
-      ...board.columns.todo,
-      ...board.columns.inProgress,
-      ...board.columns.done,
+      ...board.todo,
+      ...board.inProgress,
+      ...board.done,
     ];
 
     await Promise.all([

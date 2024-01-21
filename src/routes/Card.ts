@@ -1,9 +1,5 @@
 import express from 'express';
-import {
-  createCard,
-  deleteCard,
-  updateCard,
-} from '../controllers/Card';
+import { createCard, deleteCard, updateCard } from '../controllers/Card';
 import { Path } from '../utils/constants';
 
 export const cardRouter = express.Router();
