@@ -86,13 +86,12 @@ export const updateCard = async(req: Request, res: Response) => {
       ? 'inProgress' : status === CardStatus.DONE
         ? 'done' : 'todo';
 
-    const oldColumn = board[statusInColumns];
-    const cardIndex = oldColumn
-      .findIndex((cardId: any) => cardId.equals(updatedCard._id));
+    const oldStatus = board.todo.includes(updatedCard._id)
+      ? 'todo' : board.inProgress.includes(updatedCard._id)
+        ? 'inProgress' : 'done';
 
-    if (cardIndex !== -1) {
-      oldColumn.splice(cardIndex, 1);
-    }
+    board[oldStatus] = board[oldStatus]
+      .filter((card) => !card._id.equals(updatedCard._id));
 
     if (
       order !== undefined

@@ -31,19 +31,24 @@ export const getBoardById = async(req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
 
-    const board: BoardDocument | null = await Board.findById(boardId);
+    const board: BoardDocument | null = await Board.findById(boardId)
+      .populate('todo inProgress done')
+      .exec();
 
     if (!board) {
       return res.status(404).json({ error: 'Board not found' });
     }
 
+    board.todo.sort((a, b) => (a as any).order - (b as any).order);
+    board.inProgress.sort((a, b) => (a as any).order - (b as any).order);
+    board.done.sort((a, b) => (a as any).order - (b as any).order);
+
     const cards = {
       _id: boardId,
       name: board.name,
-      todo: await Card.find({ _id: { $in: board.todo } }).sort('order'),
-      inProgress: await Card
-        .find({ _id: { $in: board.inProgress } }).sort('order'),
-      done: await Card.find({ _id: { $in: board.done } }).sort('order'),
+      todo: board.todo,
+      inProgress: board.inProgress,
+      done: board.done,
     };
 
     res.json(cards);
