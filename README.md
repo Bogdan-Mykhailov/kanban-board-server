@@ -1,7 +1,6 @@
 # Kanban Board Server
 
 ## Description
-
 This project is a server utilizing TypeScript, Express, and Mongoose to create a task board application.
 
 ## Requirements
